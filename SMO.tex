@@ -1,0 +1,54 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{bm}
+\usepackage{xcolor}
+\begin{document}
+\title{SMO algorithm}
+\author{Tateyama Kaoru}
+\maketitle
+In SVM,our optimization problem(with Lagragian duality) is$$\underset{\bm{\alpha}}{\text{max}}-\frac{1}{2}\sum_{r=1}^{m}\sum_{s=1}^{m}\alpha_r\alpha_sy^{(r)} y^{(s)} K(x^{(r)},x^{(s)})+\sum_{t=1}^{m}\alpha_t$$with constraints
+\begin{align*}
+	0\le\alpha_i\le C\\
+	\sum_{i=1}^{m}\alpha_i y^{(i)}=0
+\end{align*}
+where $C$ is the regularization parameter,$m$ is the amount of datas.By the spirit of SMO,we're about using coordinate ascent.Suppose we optimize the objective with respect to $\alpha_i$ and $\alpha_j$,by the constraint,we have$$\alpha_i y^{(i)}+\alpha_j y^{(j)}=\gamma$$where $\gamma$ is some constant(independent of $\alpha_i$ and $\alpha_j$).Set$$W(\alpha_i,\alpha_j)=\sum_{t=1}^{m}\alpha_t-\frac{1}{2}\sum_{r=1}^{m}\sum_{s=1}^{m}\alpha_r\alpha_sy^{(r)} y^{(s)} K(x^{(r)},x^{(s)})$$
+We extract the parts that are independent of $\alpha_i$ and $\alpha_j$,then we have(for the sake of convenience,we let $K(x^{(i)},x^{(j)})=K_{ij}$)
+\begin{align*}
+	W(\alpha_i,\alpha_j)=&\alpha_i+\alpha_j-\frac{1}{2}K_{ii}\alpha_{i}^{2}-\frac{1}{2}K_{jj}\alpha_j^2-K_{ij}y^{(i)}y^{(j)}\alpha_i\alpha_j\\&-y^{(i)}\alpha_i\underset{k\ne i,j}{\sum}\alpha_k y^{(k)}K_{ik}--y^{(j)}\alpha_j\underset{k\ne i,j}{\sum}\alpha_k y^{(k)}K_{jk}
+\end{align*}
+Now we set $\frac{\partial W}{\partial \alpha_j}=0$ to get optimization.To cancel $\alpha_i$,we utilize $\alpha_i=y^{(i)}(\gamma-\alpha_j y^{(j)})$ and thus
+\begin{align*}
+	\frac{\partial W}{\partial \alpha_j}=&-(K_{ii}+K_{jj}-2K_{ij})\alpha_j+\gamma y^{(j)}K_{ii}-\gamma y^{(j)}K_{ij}\\&+y^{(j)}(\underset{k\ne i,j}{\sum}\alpha_k y^{(k)}K_{ik}-\underset{k\ne i,j}{\sum}\alpha_k y^{(k)}K_{jk})+1-y^{(i)}y^{(j)}\\&=0
+\end{align*}
+The sum in the expression is nasty,we need to rephrase it as some quantity that is easier to calculate.To achieve that,we consider the decision function$$f(x)=\bm{w}^{T}\bm{x}+b=\sum_{r=1}^{m}\alpha_r y^{(r)}K(x^{(i)},x)+b$$
+(recall that we have $\bm{w}=\sum_{r=1}^{m}\alpha_ry^{(r)}x^{(r)}$ without kernal function.)so we have
+\begin{align*}
+	\underset{k\ne i,j}{\sum}\alpha_k y^{(k)}K_{ik}=&f(x^{(i)})-\alpha_i y^{(i)}K_{ii}-\alpha_j  y^{(j)}K_{ij}-b\\
+	\underset{k\ne i,j}{\sum}\alpha_k y^{(k)}K_{jk}=&f(x^{(j)})-\alpha_i y^{(i)}K_{ji}-\alpha_j  y^{(j)}K_{jj}-b
+\end{align*}
+Notice that these two equations actually include $\alpha_i$ and $\alpha_j$,one must realize that this are the parameters not yet updated,so instead,we'd rather write them as
+\begin{align*}
+	\underset{k\ne i,j}{\sum}\alpha_k y^{(k)}K_{ik}=&f(x^{(i)})-\alpha_i^{old} y^{(i)}K_{ii}-\alpha_j^{old}  y^{(j)}K_{ij}-b\\
+	\underset{k\ne i,j}{\sum}\alpha_k y^{(k)}K_{jk}=&f(x^{(j)})-\alpha_i^{old} y^{(i)}K_{ji}-\alpha_j^{old}  y^{(j)}K_{jj}-b
+\end{align*}
+to tell them apart from the updated $\alpha_i$ and $\alpha_j$ we're seeking for.Now substitute them into the derivative,we obtain
+\begin{align*}
+	\frac{\partial W}{\partial \alpha_j}=&y^{(j)}(f(x^{(i)})-f(x^{(j)}))-(K_{ii}+K_{jj}-2K_{ij})\alpha_j\\&(K_{ii}+K_{jj}-2K_{ij})\alpha_j^{old}+1-y^{(i)}y^{(j)}\\&=0
+\end{align*}
+Now we introduce the notation $\eta=K_{ii}+K_{jj}-2K_{ij}$ and $E^{(i)}=f(x^{(i)})-y^{(i)}$,$E^{(j)}=f(x^{(j)})-y^{(j)}$ and we have$$\textcolor{red}{\alpha_j=\alpha_j^{old}+\frac{y^{(j)}(E^{(i)}-E^{(j)})}{\eta}}$$which is the update rule for parameter $\alpha_j$.However,we have constraint on $\alpha_j$ thus the updated $\alpha_j$ should be
+\begin{align*}
+	\textcolor{red}{\alpha_j^{new}=clip(\alpha_j,L,H)=
+	\begin{cases}
+		H & if\quad\alpha_j > H\\
+		\alpha_j & if\quad L < \alpha_j < H\\
+		L & if\quad \alpha_j < L
+	\end{cases}}
+\end{align*}
+where $L$ and $H$ are lower bound and upper bound of $\alpha_j$ respectively.
+
+After updating $\alpha_j$,we can immediately update $\alpha_i$ using $\alpha_i y^{((i))}+\alpha_j y^{(j)}=\gamma$ as we have$$\alpha_i^{new} y^{((i))}+\alpha_j^{new} y^{(j)}=\alpha_i^{old} y^{((i))}+\alpha_j^{old} y^{(j)}=\gamma$$Therefore,we have the update rule for $\alpha_i$ $$\textcolor{red}{\alpha_i^{new}=\alpha_i^{old}+y^{(i)}y^{(j)}(\alpha_j^{old}-\alpha_j^{new})}$$
+Now we'll go to update rule for intersection $b$.If $\alpha_i$ is support vector(i.e. $L<\alpha_i<H$),by KKT condiction,we must have$$y^{(i)}(\bm{w}^{T}x^{(i)}+b)=1$$
+so we have$$b=y^{(i)}-\sum_{k=1}^{m}\alpha_k y^{(k)}K_{ik}$$
+To calculate updated $b$,of course we should use updated $\alpha_i$ and $\alpha_j$,so$$b^{new}=y^{(i)}-\alpha_i^{new}y^{(i)}K_{ii}-\alpha_J^{new}y^{(i)}K_{ij}-\underset{k\ne i,j}{\sum}\alpha_k^{old} y^{(k)}K_{ik}$$
+(Note that $\alpha$'s are not updated yet except $\alpha_i$ and $\alpha_j$)Same as before,we have nasty sum here,still we use the trick to write$$\underset{k\ne i,j}{\sum}\alpha_k^{old} y^{(k)}K_{ik}=f(x^{(i)})-\alpha_i^{old}y^{(i)}K_{ii}-\alpha_j^{old}y^{(j)}K_{ij}+b^{old}$$and thus $$\textcolor{red}{b_1^{new}=b^{old}-E^{(i)}-y^{(i)}K_{ii}(\alpha_i^{new}-\alpha_i^{old})-y^{(j)}K_{ij}(\alpha_j^{new}-\alpha_j^{old})}$$which is the update rule for $b$.It is totallt the same case if $\alpha_j$ is support vector where we have$$\textcolor{red}{b_2^{new}=b^{old}-E^{(j)}-y^{(j)}K_{jj}(\alpha_j^{new}-\alpha_j^{old})-y^{(i)}K_{ij}(\alpha_i^{new}-\alpha_i^{old})}$$If $\alpha_i$ and $\alpha_j$ are both support vector,one can check that these two $b^{new}$ are equal without efforts.If only one of them is support vector,then we choose the corresponding $b^{new}$ as the updated intersection.If both $\alpha_i$ and $\alpha_j$ are not support vector,instead,we choose $\textcolor{red}{b^{new}=\frac{b_1^{new}+b_2^{new}}{2}}$ as the new intersection.
+\end{document}

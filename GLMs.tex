@@ -1,0 +1,60 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage{amsmath}
+\usepackage{bm}
+\begin{document}
+\title{Machine Learning Note}
+\author{Tateyama}
+\date{\today}
+\maketitle
+\section{GLM(Generalized Linear Model)}
+\subsection{Regression}
+We have two kinds of regression problems:prediction problem and classification problem.
+\subsubsection{prediction problem}
+In prediction problem,we are given datas and their assigned values and trying to fit these datas with a function so that we can predict the new value when we have a new data.The most common problem is linear regression.In linear regression problem,we fit the data using linear function $y=wx+b$(suppose the data has only one feature),the way we fit the data is to minimize the cost function
+$J = \frac{1}{2}\sum_{i=1}^{m}(y-y^{(i)})^2$,we can programme this via gradient descent or Newton iteration.In the case of gradient descent,we updata the parameters by:
+\begin{align*}
+	w &= w - \alpha \frac{\partial J}{\partial w} \\
+	b &= b - \alpha \frac{\partial J}{\partial b}
+\end{align*}
+where we call $\alpha$ the learning rate.The more accurate value of parameters come with smaller learning rate,but it'll also take longer time and iteration rounds to impliment the algorithm with smaller learning rate.
+
+In the case of Newton iteration,we seek for the zero of derivative of cost function J,for the sake of convenience,we denote $\bm{w}=(w,b)^{T}$.Let $\bm{l}$ represent the vertor derivative of J with respect to $\bm{w}$ and $H$ represent the Heisen matrix of J with respect to $\bm{w}$,then we have the update rule for $\bm{w}$:$$\bm{w}=\bm{w}-H^{-1}\bm{l}$$Newton iteration usually converges faster than gradient descent(i.e. takes less iterations) but also takes up bigger time complexity.
+
+Apart from linear model,we can also choose other more complex models like polynomials or logrithms etc.In any case,we can always determine the parameters by minimize the cost function using GD or Newton iteration.
+\subsubsection{classification problem}
+In classification problem,we are given datas with n features and their assigned value and they differ from the prediction problem as these values are discrete like 0 and 1.In binary classification problem,we classify the datas x into two categories by assigning them with label y which can be either 0 or 1.It is not wise to use linear model,instead we introduce a sigamiod function to predict the probability for a given data x being cateogry 1(i.e. y=1).The sigamoid function is defined to be $g(z)=\frac{1}{1+e^{-z}}$,with this,formally,we assume$$h(x)=p(y=1|x)=\frac{1}{1+e^{-\bm{\theta}^{T}\cdot\bm{x}}}$$
+which is a composition of linear function and sigamoid function.In the expression, $\bm{\theta}^{T}\cdot\bm{x}=\sum_{j=0}^{n}\theta_j x_j$,where we set $x_0=1$.Now say we have m datas and we need to minimize the cost function J to determine the parameters.In binary classification problem,the cost function is found to be $$J = -\sum_{i=1}^{m}(y^{(i)}log(h(x^{(i)}))+(1-y^{(i)})log(1-h(x^{(i)})))$$then we can update $\bm{\theta}$ by$$\bm{\theta} = \bm{\theta} -\alpha \nabla_{\theta}J$$
+After we finish the algorithm,we use the hypothesis $h(x)$ to determine the category that $x$ belongs to.We say $x$ belongs to catagory 0 if $h(x)<0.5$ and $x$ belongs to category 1 if $h(x)>0.5$.(Almost surely,we won't encounter the case where $h(x)$ happends to be 0.5.)
+
+We can do more generalized classification problem where we have k categories,which is also known as softmax classificaion.We'll have better approach to deal with these problems resorting to GLM.
+\subsection{GLM and its special case}
+From the view of GLM,when we do regression problem,we are not trying to directly to find a function or model to fit the data,instead,we choose a probability model to describe the data.Formally,let $\bm{x}$ denote the data and $\bm{y}$ denote the corresponding label,note that we've assumed the most generalized case where input features and labels are all vectors.Now set the following exponential family function$$p(\bm{y}|\bm{x};\bm{\eta})=b(y)exp[\bm{\eta}^{T}\cdot \bm{T}(\bm{y})+a(\bm{\eta})]$$where \bm{$\eta$} is a parameter vector,$\bm{T}$ is a vector function of labels,$a(\bm{\eta})$ is a function determine by normalization of $p(\bm{y}|\bm{x};\bm{\eta})$.Note that $p$ can be either continous or discrete.In most cases,label and prameter are just scaler and that we can write$$p(y|x;\eta)=b(y)exp[\eta T(y)+a(\eta)]$$Futhermore,$T(y)$ is usually just $y$ in the case we study in.
+
+eg(i)In linear regression,we can model it by setting $y=wx+b+\epsilon$,where $\epsilon~N(0,\sigma^2)$,with $\sigma$ known,so we put the pdf$$p(y|x;\mu)=\frac{1}{\sqrt{2\pi}\sigma}exp[-\frac{(y-\mu)^2}{2 \sigma^2}]$$with some algebra massage,we rewrite it as$$\frac{e^{-\frac{y^2}{2 \sigma^2}}}{\sqrt{2\pi}\sigma}exp[\mu\frac{y}{\sigma^2}-\frac{\mu^2}{2 \sigma^2}]$$one can immediately see that
+\begin{align*}
+	b(y) &= \frac{e^{-\frac{y^2}{2 \sigma^2}}}{\sqrt{2\pi}\sigma}\\
+	\eta &= \mu\\
+	T(y) &= \frac{y}{\sigma^2}\\
+	a(\eta) &= -\frac{\eta^2}{2 \sigma^2}
+\end{align*}
+
+eg(ii)In binary classification,let $\phi$ be the probability of $y$ taking on 1,then the cdf can be written as$$p(y|x;\phi)=\phi^{y}(1-\phi)^{1-y}=exp[ylog(\frac{\phi}{1-\phi})+log(1-\phi)]$$
+Samely,we have
+\begin{align*}
+	b(y) &= 1\\
+	\eta &=log(\frac{\phi}{1-\phi})\\
+	T(y) &=y\\
+	a(\eta) &=log(1-\phi)
+\end{align*}
+The way we use GLM to deal with real world problem can be concluded as the following:
+
+(i)construct the exponetial family probability distribution model.
+
+(ii)find the parameter $\eta$ and express the original parameters using $\eta$ and then replace $\eta$ with a linear function $\bm{w}^{T}\bm{x}$,where $\bm{x}$ is the feature of the data.
+
+(iii)calculate the mean value of $y$ to get the hypothesis $h(\eta)=h(\bm{w}^{T}\bm{x})$
+
+(iv)maximize $log(p(y|x;\eta))$ with respect to actual parameter $\bm{w}$ to find its proper value
+
+(v)use $h(\bm{w}^{T}\bm{x})$ to predict the value of $y$.
+\end{document}
